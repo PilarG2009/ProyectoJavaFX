@@ -12,6 +12,12 @@
             <HBox alignment="CENTER" prefHeight="75.0" prefWidth="600.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
                <children>
                   <Separator prefWidth="200.0" visible="false" />
+                  <ImageView fx:id="imAtras" fitHeight="50.0" fitWidth="50.0" onMouseClicked="#atrasClicked" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@imagenes/atras.png" />
+                     </image>
+                  </ImageView>
+                  <Separator prefWidth="200.0" visible="false" />
                   <ImageView fx:id="imInformacion" fitHeight="50.0" fitWidth="50.0" pickOnBounds="true" preserveRatio="true">
                      <image>
                         <Image url="@imagenes/user.png" />
@@ -30,6 +36,12 @@
                      </image>
                   </ImageView>
                   <Separator layoutX="431.0" layoutY="10.0" prefWidth="200.0" visible="false" />
+                  <ImageView fx:id="imAdelante" fitHeight="50.0" fitWidth="50.0" onMouseClicked="#adelanteClicked" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@imagenes/adelante.png" />
+                     </image>
+                  </ImageView>
+                  <Separator prefWidth="200.0" visible="false" />
                </children>
             </HBox>
          </children>

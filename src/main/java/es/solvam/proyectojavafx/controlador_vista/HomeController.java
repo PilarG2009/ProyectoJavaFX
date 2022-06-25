@@ -12,15 +12,22 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.stage.FileChooser;
 
-import java.io.File;
+import java.io.*;
+import java.net.URI;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.ResourceBundle;
 
 public class HomeController implements Initializable {
    @FXML private ImageView imInformacion;
    @FXML private ImageView imGuardar;
    @FXML private ImageView imSalir;
+   @FXML private ImageView imAtras;
+   @FXML private ImageView imAdelante;
 
    @FXML private TextField txtDni;
    @FXML private TextField txtNombre;
@@ -36,7 +43,26 @@ public class HomeController implements Initializable {
    @FXML private ImageView imFoto;
 
    public void onExitButtonClick(MouseEvent mouseEvent) {
-       System.exit(0);
+      // copia de seguridad
+      try {
+         copiaSeguridad();
+      } catch (IOException e) {
+         e.printStackTrace();
+         lanzaAlert("ERROR", "Error al escribir la copia de seguridad");
+      }
+      System.exit(0);
+   }
+
+   private final String rutaCopiaSeguridad = "src/main/resources/es/solvam/proyectojavafx/backup/backup.bck";
+   private void copiaSeguridad() throws IOException {
+      File copia = new File(rutaCopiaSeguridad);
+      FileWriter fileWriter = new FileWriter(copia, false);
+      PrintWriter printWriter = new PrintWriter(fileWriter);
+      for (Persona p: personas) {
+         printWriter.println(p.modelo2Fichero());
+      }
+      printWriter.close();
+      fileWriter.close();
    }
 
    public void onImFotoClicked(MouseEvent mouseEvent) {
@@ -51,6 +77,16 @@ public class HomeController implements Initializable {
 
       imgFile = fileChooser.showOpenDialog(null);
 
+      try {
+         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_hh-mm-ss");
+         File destino = new File("src/main/resources/es/solvam/proyectojavafx/imagenes_user/" + sdf.format(new Date()) + "-" + imgFile.getName());
+         Files.copy(imgFile.toPath(), destino.toPath(), StandardCopyOption.REPLACE_EXISTING);
+         imgFile = destino;
+      } catch (IOException e) {
+         throw new RuntimeException(e);
+      }
+
+
       if (imgFile != null) {
          Image imagen = new Image(imgFile.toURI().toString());
          imFoto.setImage(imagen);
@@ -64,7 +100,7 @@ public class HomeController implements Initializable {
       persona.setDni(txtDni.getText());
       persona.setNombre(txtNombre.getText());
       persona.setTelefono(txtTelefono.getText());
-      persona.setImagen(imgFile.toURI().toString());
+      persona.setImagen(imgFile.getPath());
       persona.setSexo(rbHombre.isSelected());
       persona.setFechaNacimiento(dtFechaNacimiento.getValue());
       persona.setOcupacion(cbOcupacion.getValue());
@@ -76,7 +112,10 @@ public class HomeController implements Initializable {
       personas.add(persona);
       lanzaAlert("Persona insertada", "Se ha insertado la persona.\nSe limpiará el Formulario");
       // Limpiar form
-      limpiarForm();
+      //limpiarForm();
+      personaActual++;
+      imAtras.setVisible(true);
+
    }
 
    private void lanzaAlert(String titulo, String mensaje) {
@@ -97,8 +136,8 @@ public class HomeController implements Initializable {
       dtFechaNacimiento.setValue(null);
       cbOcupacion.setValue(null);
       chConsultoria.setSelected(false);
-      chDisenyo.setSelected(false);
       chFormacion.setSelected(false);
+      chDisenyo.setSelected(false);
       chTecnologia.setSelected(false);
       File img = new File("src/main/resources/es/solvam/proyectojavafx/imagenes/user.png");
       imFoto.setImage(new Image(img.toURI().toString()));
@@ -110,6 +149,7 @@ public class HomeController implements Initializable {
 
    //Rellenar el combo con una colección de Strings
    ObservableList<String> contenidoComboOcupacion = FXCollections.observableArrayList("Estudiante", "Empleado", "Autónomo", "Jubilado");
+
    @Override
    public void initialize(URL url, ResourceBundle resourceBundle) {
       cbOcupacion.setItems(contenidoComboOcupacion);
@@ -120,5 +160,78 @@ public class HomeController implements Initializable {
 
       personas = new ArrayList<>();
 
+      // Inicializar los datos del fichero
+      try {
+         cargarDatos();
+      } catch (FileNotFoundException e) {
+         lanzaAlert("ERROR", "Error al leer el fichero");
+         e.printStackTrace();
+      } catch (IOException e) {
+         lanzaAlert("ERROR", "Error al leer el fichero");
+         throw new RuntimeException(e);
+      }
+   }
+
+   private void cargarDatos() throws IOException {
+      File copia = new File(rutaCopiaSeguridad);
+      FileReader fileReader = new FileReader(copia);
+      BufferedReader bf = new BufferedReader(fileReader);
+      String linea;
+      while ((linea = bf.readLine()) != null) {
+         Persona p = new Persona(linea);
+         personas.add(p);
+      }
+      bf.close();
+      fileReader.close();
+      lanzaAlert("Datos cargados", "Se han cargado "+personas.size()+ " personas");
+      if (personas.size() > 0) {
+         rellenaDatos(personas.get(0));
+         imAtras.setVisible(false);
+         personaActual = 0;
+         if (personaActual == personas.size()-1) {
+            imAdelante.setVisible(false);
+         }
+      }
+      if (personas.size() == 0) {
+         imAdelante.setVisible(false);
+         imAtras.setVisible(false);
+      }
+   }
+   // Mantiene el índice del ArrayList de la persona mostrada
+   private int personaActual = -1;
+
+
+   private void rellenaDatos(Persona persona) {
+      txtDni.setText(persona.getDni());
+      txtNombre.setText(persona.getNombre());
+      txtTelefono.setText(persona.getTelefono());
+      rbHombre.setSelected(persona.isSexo());
+      rbMujer.setSelected(!persona.isSexo());
+      dtFechaNacimiento.setValue(persona.getFechaNacimiento());
+      cbOcupacion.setValue(persona.getOcupacion());
+      chTecnologia.setSelected(persona.isTecnologia());
+      chDisenyo.setSelected(persona.isDisenyo());
+      chFormacion.setSelected(persona.isFormacion());
+      chConsultoria.setSelected(persona.isConsultoria());
+      File file = new File(persona.getImagen());
+      imFoto.setImage(new Image(file.toURI().toString()));
+   }
+
+   public void atrasClicked(MouseEvent mouseEvent) {
+      personaActual--;
+      rellenaDatos(personas.get(personaActual));
+      imAdelante.setVisible(true);
+      if (personaActual == 0){
+         imAtras.setVisible(false);
+      }
+   }
+
+   public void adelanteClicked(MouseEvent mouseEvent) {
+      personaActual++;
+      rellenaDatos(personas.get(personaActual));
+      imAtras.setVisible(true);
+      if (personaActual == personas.size()-1) {
+         imAdelante.setVisible(false);
+      }
    }
 }
